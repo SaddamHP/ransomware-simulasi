@@ -3,16 +3,16 @@ import tkinter as tk
 from tkinter import messagebox
 from cryptography.fernet import Fernet
 
-# Simulasi kunci tetap (harus sama dengan yang digunakan oleh ransomware)
-# Jika kamu ingin biarkan user input bebas, jangan pakai DECRYPTION_KEY
+# Key tetap yang sesuai dengan ransomware kamu
+DECRYPTION_KEY = 'cHZhczJ2cWtQam5Sd1R0Y3Z0a1RQZ1h2TnU1TFY5bWE='
 ENCRYPTED_EXT = '.enc'
 
-# Folder-folder target otomatis yang dipindai untuk file terenkripsi
+# Folder-folder target
 TARGET_DIRS = [
-    os.path.expanduser("~/vmshare"),
     os.path.expanduser("~/Desktop"),
     os.path.expanduser("~/Documents"),
-    os.path.expanduser("~/Downloads")
+    os.path.expanduser("~/Downloads"),
+    "Z:\\vmshare"
 ]
 
 def decrypt_file(file_path, fernet):
@@ -26,15 +26,15 @@ def decrypt_file(file_path, fernet):
             file.write(decrypted)
 
         os.remove(file_path)
-        print(f"✅ Didekripsi: {file_path}")
+        print(f"Didekripsi: {file_path}")
         return True
     except Exception as e:
-        print(f"❌ Gagal dekripsi: {file_path} → {e}")
+        print(f"Gagal dekripsi: {file_path} → {e}")
         return False
 
-def process_decrypt(user_key):
+def process_decrypt():
     try:
-        fernet = Fernet(user_key.encode())
+        fernet = Fernet(DECRYPTION_KEY.encode())
     except Exception as e:
         messagebox.showerror("Key Error", f"Kunci tidak valid!\n{e}")
         return
@@ -61,19 +61,9 @@ def launch_gui():
     root.title("🔐 File Decryptor Otomatis")
     root.geometry("420x220")
 
-    tk.Label(root, text="Masukkan Kunci Dekripsi:", font=("Arial", 11)).pack(pady=15)
+    tk.Label(root, text="Kunci dekripsi sudah dimasukkan otomatis.", font=("Arial", 11)).pack(pady=20)
+    tk.Button(root, text="Dekripsi Semua File", command=process_decrypt).pack(pady=40)
 
-    key_entry = tk.Entry(root, width=55, show="*")
-    key_entry.pack(pady=5)
-
-    def on_decrypt_click():
-        user_key = key_entry.get().strip()
-        if user_key:
-            process_decrypt(user_key)
-        else:
-            messagebox.showwarning("Kosong", "Kunci dekripsi harus diisi!")
-
-    tk.Button(root, text="🛠 Dekripsi Semua File", command=on_decrypt_click).pack(pady=20)
     root.mainloop()
 
 if __name__ == "__main__":
